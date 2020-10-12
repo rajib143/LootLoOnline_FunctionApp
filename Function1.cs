@@ -7,6 +7,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using LootLoOnline_FunctionApp.Repository;
 
 namespace LootLoOnline_FunctionApp
 {
@@ -17,19 +18,21 @@ namespace LootLoOnline_FunctionApp
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
+            try
+            {
 
-            string name = req.Query["name"];
+                var lootLoOnlineDbContext = new LootLoOnlineDbContext();
+                OfferProductRepository offerProductRepository = new OfferProductRepository(lootLoOnlineDbContext);
 
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+                var result = await offerProductRepository.GetAllByFilter(1,100,x=>x.shotTitle.Contains("50"), x=>x.SpecialPrice);
 
-            string responseMessage = string.IsNullOrEmpty(name)
-                ? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
-                : $"Hello, {name}. This HTTP triggered function executed successfully.";
+                return new OkObjectResult(result);
+            }
+            catch (Exception ex)
+            {
 
-            return new OkObjectResult(responseMessage);
+                return new BadRequestObjectResult(ex);
+            }
         }
     }
 }
